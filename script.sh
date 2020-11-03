@@ -54,7 +54,7 @@ case "$1" in
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
   ;;
 
-'observers')
+'observing-squad')
   #Install observers for all shards
   NUMBEROFNODES=4
   
@@ -87,8 +87,10 @@ case "$1" in
          systemd
          if [[ "$INDEX" == 3 ]]; then
                        sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "metachain"/' $WORKDIR/config/prefs.toml
+                       sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
                   else 
                   sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "'$INDEX'"/' $WORKDIR/config/prefs.toml
+                  sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
             fi
        done
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
@@ -102,7 +104,7 @@ case "$1" in
   paths
   #Check to see if scripts have been updated
   cd $SCRIPTPATH
-  CURRENT_SCRIPTS_COMMIT=$(git show | grep commit | awk '{print $2}')
+  CURRENT_SCRIPTS_COMMIT=$(git show | grep -m 1 commit | awk '{print $2}')
   
       if [ $LATEST_SCRIPTS_COMMIT == $CURRENT_SCRIPTS_COMMIT ]; then
           echo "Strings are equal"
@@ -407,7 +409,7 @@ case "$1" in
   echo -e "${CYAN}Elrond MainNet scripts parameters:${NC}"
   echo -e
   echo -e "${GREEN} 1) ${CYAN}install${GREEN} - Regular install process for validator nodes${NC}"
-  echo -e "${GREEN} 2) ${CYAN}observers${GREEN} - Observers and proxy install option${NC}"
+  echo -e "${GREEN} 2) ${CYAN}observing-squad${GREEN} - Option for setting up an Elrond Observing Squad${NC}"
   echo -e "${GREEN} 3) ${CYAN}upgrade${GREEN} - Run the upgrade process for the installed nodes${NC}"
   echo -e "${GREEN} 4) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
   echo -e "${GREEN} 5) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
