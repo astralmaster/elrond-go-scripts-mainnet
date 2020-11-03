@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-#Script version
-VERSION="1.0.0"
-
 #Color to the people
 RED='\x1B[0;31m'
 CYAN='\x1B[0;36m'
@@ -55,6 +52,51 @@ case "$1" in
        done
        
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
+  ;;
+
+'observing-squad')
+  #Install observers for all shards
+  NUMBEROFNODES=4
+
+  #Check if CUSTOM_HOME exists
+  if ! [ -d "$CUSTOM_HOME" ]; then echo -e "${RED}Please configure your variables first ! (variables.cfg --> CUSTOM_HOME & CUSTOM_USER)${NC}"; exit; fi
+
+  prerequisites
+
+  #Keep track of how many nodes you've started on the machine
+  echo "$NUMBEROFNODES" > $CUSTOM_HOME/.numberofnodes
+  paths
+  go_lang
+  #If repos are present and you run install again this will clean up for you :D
+  if [ -d "$GOPATH/src/github.com/ElrondNetwork/elrond-go" ]; then echo -e "${RED}--> Repos present. Either run the upgrade command or cleanup & install again...${NC}"; echo -e; exit; fi
+  mkdir -p $GOPATH/src/github.com/ElrondNetwork
+  git_clone
+  git_clone_proxy
+  build_node
+  build_keygen
+
+  #Run the install process for each observer
+  for i in $(seq 1 $NUMBEROFNODES);
+        do
+         INDEX=$(( $i - 1 ))
+         WORKDIR="$CUSTOM_HOME/elrond-nodes/node-$INDEX"
+         install
+         install_utils
+         node_name
+         observer_keys
+         systemd
+         sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
+         if [[ "$INDEX" == 3 ]]; then
+             sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "metachain"/' $WORKDIR/config/prefs.toml
+         else
+             sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "'$INDEX'"/' $WORKDIR/config/prefs.toml
+         fi
+       done
+  sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
+
+  #Install & configure elrond-proxy
+  elrond_proxy
+  proxy_config
   ;;
 
 'upgrade')
@@ -117,6 +159,43 @@ case "$1" in
           echo -e "${RED}You do not have the latest version of the elrond-go-scripts-mainnet !!!${NC}"
           echo -e "${RED}Please run ${CYAN}./script.sh github_pull${RED} before running the upgrade command...${NC}"
        fi
+  ;;
+
+'upgrade_proxy')
+  paths
+  echo -e
+  echo -e "${GREEN}This option will rebuild your proxy from the latest github code.${NC}"
+  echo -e
+  read -p "Do you want to go on with the upgrade (Default No) ? (Yy/Nn)" yn
+  echo -e
+
+  case $yn in
+       [Yy]* )
+         #Remove previously cloned repo
+         if [ -d "$GOPATH/src/github.com/ElrondNetwork/elrond-proxy-go" ]; then sudo rm -rf $GOPATH/src/github.com/ElrondNetwork/elrond-proxy-go; echo -e; echo -e "${RED}--> Repo present. Removing and fetching again...${NC}"; echo -e; fi
+           git_clone_proxy
+           pidof proxy >/dev/null && sudo service elrond-proxy stop
+           #Remove old proxy folder & service
+           if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo rm /etc/systemd/system/elrond-proxy.service; fi
+           sudo systemctl daemon-reload
+           if [ -d $CUSTOM_HOME/elrond-proxy/ ]; then sudo rm -rf $CUSTOM_HOME/elrond-proxy/; fi
+
+           #Rebuild the proxy & run the config for it again
+           elrond_proxy
+           proxy_config
+
+           #Restart the new proxy
+           sudo systemctl start elrond-proxy
+          ;;
+
+        [Nn]* )
+          echo -e "${GREEN}Fine ! Skipping proxy upgrade on this machine...${NC}"
+          ;;
+
+        * )
+          echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
+          ;;
+    esac
   ;;
 
 'remove_db')
@@ -185,6 +264,12 @@ case "$1" in
         echo -e
         sudo systemctl start elrond-node-$STARTINDEX
       done
+  if [ -e /etc/systemd/system/elrond-proxy.service ]; then
+                                        echo -e
+                                        echo -e "${GREEN}Starting the Elrond Proxy service on host ${CYAN}$HOST${GREEN}...${NC}"
+                                        echo -e
+                                        sudo systemctl start elrond-proxy
+            fi
   ;;
 
 'stop')
@@ -197,6 +282,12 @@ case "$1" in
         echo -e
         sudo systemctl stop elrond-node-$STOPINDEX
       done
+  if [ -e /etc/systemd/system/elrond-proxy.service ]; then
+                                        echo -e
+                                        echo -e "${GREEN}Stopping the Elrond Proxy service on host ${CYAN}$HOST${GREEN}...${NC}"
+                                        echo -e
+                                        sudo systemctl stop elrond-proxy
+            fi
   ;;
 
 'cleanup')
@@ -223,6 +314,11 @@ case "$1" in
                           if [ -d $CUSTOM_HOME/elrond-nodes/node-$KILLINDEX ]; then sudo rm -rf $CUSTOM_HOME/elrond-nodes/node-$KILLINDEX; fi
                     done
           fi
+
+            #Stop and remove the elrond-proxy service if present
+            if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo systemctl stop elrond-proxy; fi
+            if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo rm /etc/systemd/system/elrond-proxy.service; fi
+            if [ -d $CUSTOM_HOME/elrond-proxy/ ]; then sudo rm -rf $CUSTOM_HOME/elrond-proxy/; fi
 
             #Reload systemd after deleting node units
             sudo systemctl daemon-reload
@@ -301,17 +397,26 @@ case "$1" in
         sudo journalctl --unit elrond-node-$LOGSINDEX >> $CUSTOM_HOME/elrond-logs/elrond-node-$LOGSINDEX-$LOGSPUBLIC.log
       done
 
-  #Compress logs and erase files
-  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log  
-  ;;
-
-'version')
-  echo -e
-  echo -e "${GREEN}---> You are on version: ${CYAN}$VERSION${GREEN} of the scripts...${NC}"
-  echo -e
+  #Compress the logs and erase files
+  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log
   ;;
 
 *)
-  echo "Usage: Missing parameter ! [install|upgrade|start|stop|cleanup|get_logs|github_pull|version]"
+  echo -e
+  echo -e "${CYAN}Usage: Missing parameter ! Use one of the following...${NC}"
+  echo -e
+  echo -e "${CYAN}Elrond MainNet scripts parameters:${NC}"
+  echo -e
+  echo -e "${GREEN} 1) ${CYAN}install${GREEN} - Regular install process for validator nodes${NC}"
+  echo -e "${GREEN} 2) ${CYAN}observing-squad${GREEN} - Option for setting up an Elrond Observing Squad${NC}"
+  echo -e "${GREEN} 3) ${CYAN}upgrade${GREEN} - Run the upgrade process for the installed nodes${NC}"
+  echo -e "${GREEN} 4) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
+  echo -e "${GREEN} 5) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 6) ${CYAN}stop${GREEN} - Stop all the installed nodes (will also stop elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 7) ${CYAN}cleanup${GREEN} - Remove everything from the host${NC}"
+  echo -e "${GREEN} 8) ${CYAN}github_pull${GREEN} - Get latest version of scripts from github (with variables backup)${NC}"
+  echo -e "${GREEN} 9) ${CYAN}get_logs${GREEN} - Get the logs from all the nodes${NC}"
+  echo -e
   ;;
+
 esac
