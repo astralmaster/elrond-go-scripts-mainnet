@@ -85,13 +85,12 @@ case "$1" in
          node_name
          observer_keys
          systemd
+         sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
          if [[ "$INDEX" == 3 ]]; then
-                       sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "metachain"/' $WORKDIR/config/prefs.toml
-                       sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
-                  else 
-                  sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "'$INDEX'"/' $WORKDIR/config/prefs.toml
-                  sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
-            fi
+             sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "metachain"/' $WORKDIR/config/prefs.toml
+         else
+             sed -i 's/DestinationShardAsObserver = "disabled"/DestinationShardAsObserver = "'$INDEX'"/' $WORKDIR/config/prefs.toml
+         fi
        done
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
   
