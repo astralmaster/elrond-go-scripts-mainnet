@@ -57,7 +57,7 @@ case "$1" in
 'observing-squad')
   #Install observers for all shards
   NUMBEROFNODES=4
-  
+
   #Check if CUSTOM_HOME exists
   if ! [ -d "$CUSTOM_HOME" ]; then echo -e "${RED}Please configure your variables first ! (variables.cfg --> CUSTOM_HOME & CUSTOM_USER)${NC}"; exit; fi
 
@@ -74,10 +74,10 @@ case "$1" in
   git_clone_proxy
   build_node
   build_keygen
-  
+
   #Run the install process for each observer
-  for i in $(seq 1 $NUMBEROFNODES); 
-        do 
+  for i in $(seq 1 $NUMBEROFNODES);
+        do
          INDEX=$(( $i - 1 ))
          WORKDIR="$CUSTOM_HOME/elrond-nodes/node-$INDEX"
          install
@@ -93,7 +93,7 @@ case "$1" in
          fi
        done
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
-  
+
   #Install & configure elrond-proxy
   elrond_proxy
   proxy_config
@@ -179,7 +179,7 @@ case "$1" in
            if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo rm /etc/systemd/system/elrond-proxy.service; fi
            sudo systemctl daemon-reload
            if [ -d $CUSTOM_HOME/elrond-proxy/ ]; then sudo rm -rf $CUSTOM_HOME/elrond-proxy/; fi
-           
+
            #Rebuild the proxy & run the config for it again
            elrond_proxy
            proxy_config
@@ -187,11 +187,11 @@ case "$1" in
            #Restart the new proxy
            sudo systemctl start elrond-proxy
           ;;
-    
+
         [Nn]* )
           echo -e "${GREEN}Fine ! Skipping proxy upgrade on this machine...${NC}"
           ;;
-    
+
         * )
           echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
           ;;
@@ -314,7 +314,7 @@ case "$1" in
                           if [ -d $CUSTOM_HOME/elrond-nodes/node-$KILLINDEX ]; then sudo rm -rf $CUSTOM_HOME/elrond-nodes/node-$KILLINDEX; fi
                     done
           fi
-          
+
             #Stop and remove the elrond-proxy service if present
             if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo systemctl stop elrond-proxy; fi
             if [ -e /etc/systemd/system/elrond-proxy.service ]; then sudo rm /etc/systemd/system/elrond-proxy.service; fi
@@ -398,7 +398,7 @@ case "$1" in
       done
 
   #Compress the logs and erase files
-  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log 
+  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log
   ;;
 
 *)
