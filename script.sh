@@ -13,29 +13,7 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 source $SCRIPTPATH/config/variables.cfg
 source $SCRIPTPATH/config/functions.cfg
 
-echo -e
-echo -e "${CYAN}Elrond MainNet scripts options:${NC}"
-echo -e
-echo -e "${GREEN}1) ${CYAN}install${GREEN} - Regular install process for validator nodes${NC}"
-echo -e "${GREEN}2) ${CYAN}observers${GREEN} - Observers and proxy install option${NC}"
-echo -e "${GREEN}3) ${CYAN}upgrade${GREEN} - Run the upgrade process for the installed nodes${NC}"
-echo -e "${GREEN}4) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
-echo -e "${GREEN}5) ${CYAN}remove_db${GREEN} - Remove the nodes databases (individual node selection)${NC}"
-echo -e "${GREEN}6) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
-echo -e "${GREEN}7) ${CYAN}stop${GREEN} - Stop all the installed nodes (will also stop elrond-proxy if installed)${NC}"
-echo -e "${GREEN}8) ${CYAN}cleanup${GREEN} - Remove everything from the host${NC}"
-echo -e "${GREEN}9) ${CYAN}github_pull${GREEN} - Get latest version of scripts from github (with variables backup)${NC}"
-echo -e "${GREEN}10) ${CYAN}quit${GREEN} - Exit this menu${NC}"
-echo -e
-
-COLUMNS=12
-PS3="Please select an action:"
-options=("install" "observers" "upgrade" "upgrade_proxy" "remove_db" "start" "stop" "cleanup" "github_pull" "quit")
-
-select opt in "${options[@]}"
-do
-
-case $opt in
+case "$1" in
 
 'install')
   read -p "How many nodes do you want to run ? : " NUMBEROFNODES
@@ -74,7 +52,6 @@ case $opt in
        done
        
   sudo chown -R $CUSTOM_USER: $CUSTOM_HOME/elrond-nodes
-  break
   ;;
 
 'observers')
@@ -119,7 +96,6 @@ case $opt in
   #Install & configure elrond-proxy
   elrond_proxy
   proxy_config
-  break
   ;;
 
 'upgrade')
@@ -182,7 +158,6 @@ case $opt in
           echo -e "${RED}You do not have the latest version of the elrond-go-scripts-mainnet !!!${NC}"
           echo -e "${RED}Please run ${CYAN}./script.sh github_pull${RED} before running the upgrade command...${NC}"
        fi
-  break
   ;;
 
 'upgrade_proxy')
@@ -220,7 +195,6 @@ case $opt in
           echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
           ;;
     esac
-  break
   ;;
 
 'remove_db')
@@ -277,7 +251,6 @@ case $opt in
            echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
             ;;
       esac
-  break
   ;;
 
 'start')
@@ -296,7 +269,6 @@ case $opt in
                                         echo -e
                                         sudo systemctl start elrond-proxy
             fi
-  break
   ;;
 
 'stop')
@@ -315,7 +287,6 @@ case $opt in
                                         echo -e
                                         sudo systemctl stop elrond-proxy
             fi
-  break
   ;;
 
 'cleanup')
@@ -380,7 +351,6 @@ case $opt in
            echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
             ;;
       esac
-  break
   ;;
 
 'github_pull')
@@ -404,7 +374,6 @@ case $opt in
   variables_restore
   echo -e "${GREEN}---> Finished fetching scripts...${NC}"
   echo -e
-  break
   ;;
 
 'get_logs')
@@ -428,17 +397,25 @@ case $opt in
       done
 
   #Compress the logs and erase files
-  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log
-  break 
+  cd $CUSTOM_HOME/elrond-logs/ && tar -zcvf elrond-node-logs-$LOGSTIME.tar.gz *.log && rm *.log 
   ;;
 
-'quit')
+*)
   echo -e
-  echo -e "${GREEN}---> Exiting scripts menu...${NC}"
+  echo -e "${CYAN}Usage: Missing parameter ! Use one of the following...${NC}"
   echo -e
-  break
+  echo -e "${CYAN}Elrond MainNet scripts parameters:${NC}"
+  echo -e
+  echo -e "${GREEN} 1) ${CYAN}install${GREEN} - Regular install process for validator nodes${NC}"
+  echo -e "${GREEN} 2) ${CYAN}observers${GREEN} - Observers and proxy install option${NC}"
+  echo -e "${GREEN} 3) ${CYAN}upgrade${GREEN} - Run the upgrade process for the installed nodes${NC}"
+  echo -e "${GREEN} 4) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
+  echo -e "${GREEN} 5) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 6) ${CYAN}stop${GREEN} - Stop all the installed nodes (will also stop elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 7) ${CYAN}cleanup${GREEN} - Remove everything from the host${NC}"
+  echo -e "${GREEN} 8) ${CYAN}github_pull${GREEN} - Get latest version of scripts from github (with variables backup)${NC}"
+  echo -e "${GREEN} 9) ${CYAN}get_logs${GREEN} - Get the logs from all the nodes${NC}"
+  echo -e
   ;;
 
 esac
-
-done
