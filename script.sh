@@ -161,6 +161,69 @@ case "$1" in
        fi
   ;;
 
+'upgrade_squad')
+  paths
+  #Check to see if scripts have been updated
+  cd $SCRIPTPATH
+  CURRENT_SCRIPTS_COMMIT=$(git show | grep -m 1 commit | awk '{print $2}')
+  
+      if [ $LATEST_SCRIPTS_COMMIT == $CURRENT_SCRIPTS_COMMIT ]; then
+          echo "Strings are equal"
+          cd $GOPATH/src/github.com/ElrondNetwork/elrond-config-mainnet 
+          INSTALLED_CONFIGS=$(git status | grep HEAD | awk '{print $4}')
+          echo -e
+          echo -e "${GREEN}Local version for configs: ${CYAN}tags/$INSTALLED_CONFIGS${NC}"
+          echo -e
+          echo -e "${GREEN}Github version of configs: ${CYAN}$CONFIGVER${NC}"
+          echo -e
+          echo -e "${GREEN}Release notes for the latest version:${NC}"
+          echo -e "${GREEN}$RELEASENOTES${NC}"  
+          echo -e 
+          read -p "Do you want to go on with the upgrade (Default No) ? (Yy/Nn)" yn
+          echo -e
+  
+          case $yn in
+               [Yy]* )
+                 #Remove previously cloned repos
+                 if [ -d "$GOPATH/src/github.com/ElrondNetwork/elrond-go" ]; then sudo rm -rf $GOPATH/src/github.com/ElrondNetwork/elrond-*; echo -e; echo -e "${RED}--> Repos present. Removing and fetching again...${NC}"; echo -e; fi
+                   git_clone
+                   build_node
+                   build_keygen
+                 if ! [ -d "$CUSTOM_HOME/elrond-utils" ]; then mkdir -p $CUSTOM_HOME/elrond-utils; fi
+                   install_utils
+  
+                 INSTALLEDNODES=$(cat $CUSTOM_HOME/.numberofnodes)
+  
+                 #Run the update process for each node
+                 for i in $(seq 1 $INSTALLEDNODES);
+                      do
+                        UPDATEINDEX=$(( $i - 1 ))
+                        UPDATEWORKDIR="$CUSTOM_HOME/elrond-nodes/node-$UPDATEINDEX"
+                        cp -f $UPDATEWORKDIR/config/prefs.toml $UPDATEWORKDIR/config/prefs.toml.save
+        
+                        sudo systemctl stop elrond-node-$UPDATEINDEX
+                        update
+                        mv $UPDATEWORKDIR/config/prefs.toml.save $UPDATEWORKDIR/config/prefs.toml
+                        sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
+                        sudo systemctl start elrond-node-$UPDATEINDEX
+                    done
+                  ;;
+            
+                [Nn]* )
+                  echo -e "${GREEN}Fine ! Skipping upgrade on this machine...${NC}"
+                  ;;
+            
+                * )
+                  echo -e "${GREEN}I'll take that as a no then... moving on...${NC}"
+                  ;;
+            esac
+  
+        else
+          echo -e "${RED}You do not have the latest version of the elrond-go-scripts-mainnet !!!${NC}"
+          echo -e "${RED}Please run ${CYAN}./script.sh github_pull${RED} before running the upgrade command...${NC}"
+       fi
+  ;;
+
 'upgrade_proxy')
   paths
   echo -e
@@ -410,12 +473,13 @@ case "$1" in
   echo -e "${GREEN} 1) ${CYAN}install${GREEN} - Regular install process for validator nodes${NC}"
   echo -e "${GREEN} 2) ${CYAN}observing-squad${GREEN} - Option for setting up an Elrond Observing Squad${NC}"
   echo -e "${GREEN} 3) ${CYAN}upgrade${GREEN} - Run the upgrade process for the installed nodes${NC}"
-  echo -e "${GREEN} 4) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
-  echo -e "${GREEN} 5) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
-  echo -e "${GREEN} 6) ${CYAN}stop${GREEN} - Stop all the installed nodes (will also stop elrond-proxy if installed)${NC}"
-  echo -e "${GREEN} 7) ${CYAN}cleanup${GREEN} - Remove everything from the host${NC}"
-  echo -e "${GREEN} 8) ${CYAN}github_pull${GREEN} - Get latest version of scripts from github (with variables backup)${NC}"
-  echo -e "${GREEN} 9) ${CYAN}get_logs${GREEN} - Get the logs from all the nodes${NC}"
+  echo -e "${GREEN} 4) ${CYAN}upgrade_squad${GREEN} - Run the upgrade process for Elrond Observing Squad observers${NC}"
+  echo -e "${GREEN} 5) ${CYAN}upgrade_proxy${GREEN} - Run the upgrade process for the installed proxy${NC}"
+  echo -e "${GREEN} 6) ${CYAN}start${GREEN} - Start all the installed nodes (will also start elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 7) ${CYAN}stop${GREEN} - Stop all the installed nodes (will also stop elrond-proxy if installed)${NC}"
+  echo -e "${GREEN} 8) ${CYAN}cleanup${GREEN} - Remove everything from the host${NC}"
+  echo -e "${GREEN} 9) ${CYAN}github_pull${GREEN} - Get latest version of scripts from github (with variables backup)${NC}"
+  echo -e "${GREEN}10) ${CYAN}get_logs${GREEN} - Get the logs from all the nodes${NC}"
   echo -e
   ;;
 
