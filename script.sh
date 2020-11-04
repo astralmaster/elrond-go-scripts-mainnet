@@ -204,7 +204,7 @@ case "$1" in
                         sudo systemctl stop elrond-node-$UPDATEINDEX
                         update
                         mv $UPDATEWORKDIR/config/prefs.toml.save $UPDATEWORKDIR/config/prefs.toml
-                        sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $WORKDIR/config/config.toml
+                        sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' $UPDATEWORKDIR/config/config.toml
                         sudo systemctl start elrond-node-$UPDATEINDEX
                     done
                   ;;
