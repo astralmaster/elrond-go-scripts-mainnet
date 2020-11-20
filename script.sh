@@ -1,9 +1,7 @@
 #!/bin/bash
 set -e
 
-#Color to the people
-#RED='\x1B[0;31m'
-#CYAN='\x1B[0;36m'
+#Color definitions
 GREEN='\x1B[0;32m'
 NC='\x1B[0m'
 
