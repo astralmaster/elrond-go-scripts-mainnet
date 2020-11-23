@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-#Color definitions
-GREEN='\x1B[0;32m'
-NC='\x1B[0m'
-
 #Make script aware of its location
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
